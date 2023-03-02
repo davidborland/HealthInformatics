@@ -1,7 +1,7 @@
 # HealthInformatics
 Various tools developed for health informatics visualization
 
-D. Gotz and D. Borland. Data-driven healthcare: challenges and opportunities for interactive visualization. IEEE Computer Graphics and Applications. 36(3):90-96. 2016. doi: 10.1109/MCG.2016.59
+D. Gotz and D. Borland. Data-driven healthcare: challenges and opportunities for interactive visualization. IEEE Computer Graphics and Applications. 36(3):90-96. 2016. doi: [10.1109/MCG.2016.59](https://doi.org/10.1109/MCG.2016.59)
 
 D. Borland, V. L. West, and W. E. Hammond. Multivariate visualization of longitudinal clinical data. Proceedings of the IEEE VIS 2016 Workshop on Temporal & Sequential Event Analysis. 2016. 
 
