@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>  
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <title> Radial Coordinates </title>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.min.css">
+  <link rel="stylesheet" href="d3.radialCoordinates.css">
+<!-- <script src="http://d3js.org/d3.v3.js"></script> -->
+<!-- <script src="http://d3js.org/d3.v3.min.js"></script> -->
+<!-- <script src="d3.v3.js"></script> -->
+<script src="d3.v3.min.js"></script>
+<!-- <script src="fisheye.js"></script> -->
+<!--  <script src="http://d3js.org/colorbrewer.v1.min.js"></script> -->
+<!--  <script src="colorbrewer.v1.min.js"></script> -->
+  <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script> 
+  <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.min.js"></script>
+  <script src="d3.radialCoordinates.js"></script>
+</head>
+
+<body>
+
+<!-- Set up page -->
+<div>  
+  <div id="gui" style="position: fixed;">   
+    <table>
+      <tr>
+        <td>Load data:</td>
+        <td><input type="file" id="dataSelect"/></td>
+      </tr>
+      <tr>
+        <td>Load correlations:</td>
+        <td><input type="file" id="correlationSelect"/></td>
+      </tr>
+      <tr>
+        <td>Load pca:</td>
+        <td><input type="file" id="pcaSelect"/></td>
+      </tr>
+      <tr><td style="line-height:10px">&nbsp;</td><td></td></tr>
+      <tr>
+        <td>Unselected opacity:</td>
+        <td><div id="minOpacitySlider" style="display: inline-block; width: 200px;"></div></td>
+      </tr>
+      <tr>
+        <td>Selected opacity:</td>
+        <td><div id="maxOpacitySlider" style="display: inline-block; width: 200px;"></div></td>
+      </tr>
+      <tr>
+        <td>Ribbon opacity:</td>
+        <td><div id="ribbonOpacitySlider" style="display: inline-block; width: 200px;"></div></td>
+      </tr>    
+      <tr>
+        <td>Ribbon outline opacity:</td>
+        <td><div id="ribbonOutlineOpacitySlider" style="display: inline-block; width: 200px;"></div></td>
+      </tr> 
+      <tr>
+        <td>Ribbon overlay opacity:</td>
+        <td><div id="ribbonOverlayOpacitySlider" style="display: inline-block; width: 200px;"></div></td>
+      </tr>
+      <tr><td style="line-height:10px">&nbsp;</td><td></td></tr>
+      <tr>
+        <td>Axis opacity:</td>
+        <td><div id="axisOpacitySlider" style="display: inline-block; width: 200px;"></div></td>
+      </tr>
+      <tr>
+        <td>Discrete axis threshold:</td>
+        <td><div id="discreteThresholdSlider" style="display: inline-block; width: 200px;"></div></td>
+      </tr>
+      <tr><td style="line-height:10px">&nbsp;</td><td></td></tr>
+      <tr>
+        <td>Curve spread:</td>
+        <td><div id="curveSpreadSlider" style="display: inline-block; width: 200px;"></div></td>
+      </tr> 
+      <tr>
+        <td>Curve steps:</td>
+        <td><div id="curveStepsSlider" style="display: inline-block; width: 200px;"></div></td>
+      </tr>  
+      <tr>
+        <td>Curve tension:</td>
+        <td><div id="curveTensionSlider" style="display: inline-block; width: 200px;"></div></td>  
+      </tr>
+      <tr><td style="line-height:10px">&nbsp;</td><td></td></tr>
+      <tr>
+        <td>Transition time:</td>
+        <td><div id="transitionTimeSlider" style="display: inline-block; width: 200px;"></div></td>  
+      </tr>      
+      <tr>
+        <td>Lable angle:</td>
+        <td><div id="labelAngleSlider" style="display: inline-block; width: 200px;"></div></td>  
+      </tr>      
+      <tr>
+        <td>Minimum relation:</td>
+        <td><div id="minRelationSlider" style="display: inline-block; width: 200px;"></div></td>  
+      </tr>      
+      <tr>
+        <td>Chord width:</td>
+        <td><div id="chordWidthSlider" style="display: inline-block; width: 200px;"></div></td>  
+      </tr>
+      <tr><td style="line-height:10px">&nbsp;</td><td></td></tr>
+      <tr>
+        <td><input type="checkbox" id="showRibbonsButton"><label for="showRibbonsButton">Show ribbons</label></td>
+        <td><input type="checkbox" id="useFilterButton"><label for="useFilterButton">Use filter</label></td>
+      </tr>
+      <tr>
+        <td><input type="checkbox" id="decorateAxesButton"><label for="decorateAxesButton">Decorate axes</label></td>
+        <td></td>
+      </tr>
+    </table>   
+  </div>
+  <div id="main" style="float: left; margin-left: 400px"></div>
+</div>
+
+<!-- Radial coordinates -->
+<script type="text/javascript">
+
+// Create the radial coordinates function
+var rc = d3.radialCoordinates()
+    .width(2000)
+    .height(1200)
+    .minOpacity(0.1)
+    .maxOpacity(0.5)
+    .axisOpacity(0.5)
+    .labelAngle(10)
+    .discreteThreshold(10)
+    .curveSteps(10)
+    .curveTension(0.1);
+//    .categoricalAxisColors(colorbrewer.RdYlBu[11]);
+
+
+// Callbacks for file selection
+function handleDataSelect(event) { 
+  var url = window.URL.createObjectURL(event.target.files[0]),
+      fileName = event.target.files[0].name;
+    
+  fileName.indexOf(".json") !== -1 ? d3.json(url, loadData) : d3.csv(url, loadData);
+}
+
+function handleCorrelationSelect(event) {
+  var url = window.URL.createObjectURL(event.target.files[0]);
+  d3.csv(url, function(error, data) {
+    if (error) console.log(error);
+    rc.relations(data);
+  });
+}
+
+function handlePCASelect(event) {
+  var url = window.URL.createObjectURL(event.target.files[0]);
+  d3.csv(url, function(error, data) {
+    if (error) console.log(error);
+    rc.pca(data);
+  });
+}
+
+document.getElementById("dataSelect").addEventListener("change", handleDataSelect, false);
+document.getElementById("correlationSelect").addEventListener("change", handleCorrelationSelect, false);
+document.getElementById("pcaSelect").addEventListener("change", handlePCASelect, false);
+
+
+// JQuery GUI
+createGUI();
+
+
+// Load the data
+function loadData(error, data) {
+  if (error) console.log(error);
+  
+  
+  console.log(data);
+  
+  rc.relations([]);
+  rc.pca([]);
+
+  d3.select("#main")
+      .datum(data)
+    .call(rc);
+    
+  // Eventually move list to own reusable component
+  var spacing = 15;
+  var perColumn = 75;
+  
+  var order = d3.scale.ordinal()
+      .domain(d3.range(data.length).sort(function(a, b) { return d3.ascending(data[a][""].toLowerCase(), data[b][""].toLowerCase()); }))
+      .rangePoints([0, data.length - 1]);
+
+  var x = d3.scale.linear()
+      .domain([0, data.length / perColumn])
+      .range([1250, 1750]);
+  var y = d3.scale.linear()
+      .domain([0, data.length - 1])
+      .range([spacing, (data.length) * spacing]);
+  
+  d3.select("#main").select("svg").selectAll(".list").remove();
+  
+  d3.select("#main").select("svg").selectAll(".list")
+      .data(data)
+    .enter().append("text")
+      .attr("class", "list")
+      .attr("x", function(d, i) { return x(Math.floor(order(i) / perColumn)); })
+      .attr("y", function(d, i) { return y(order(i) % perColumn); })
+      .style("fill", "grey")
+      .style("font-size", "small")
+      .text(function(d) { return d[""]; })
+      .on("click", function(d, i) {   
+        // Key codes
+        var ctrl = d3.event.ctrlKey,
+            alt = d3.event.altKey;
+
+        data.forEach(function(d, j) {
+          // Ctrl adds to the current group, regardless of whether already brushed
+          // Shift adds to the current group if already brushed
+          // Alt subtracts from the current group
+          
+          if (i === j) {
+            if (alt) d.tempGroup = d.group = -1;
+            else d.tempGroup = d.group = rc.currentGroup();
+          }
+          else {
+            if (!ctrl && !alt && d.group === rc.currentGroup()) d.tempGroup = d.group = -1;
+          }
+        });
+        
+        rc.updateCurves(rc.transitionTime());
+      });
+}
+
+function createGUI() {  
+  $(function() {
+    $("#minOpacitySlider").slider({
+      min: 0,
+      max: 100,
+      value: rc.minOpacity() * 100,
+      animate: "fast",
+      slide: function(event, ui) {
+        rc.minOpacity(ui.value / 100);
+      }
+    });
+    $("#maxOpacitySlider").slider({
+      min: 0,
+      max: 100,
+      value: rc.maxOpacity() * 100,
+      animate: "fast",
+      slide: function(event, ui) {
+        rc.maxOpacity(ui.value / 100);
+      }
+    });
+    $("#ribbonOpacitySlider").slider({
+      min: 0,
+      max: 100,
+      value: rc.ribbonOpacity() * 100,
+      animate: "fast",
+      slide: function(event, ui) {
+        rc.ribbonOpacity(ui.value / 100);
+      }
+    });     
+    $("#ribbonOutlineOpacitySlider").slider({
+      min: 0,
+      max: 100,
+      value: rc.ribbonOutlineOpacity() * 100,
+      animate: "fast",
+      slide: function(event, ui) {
+        rc.ribbonOutlineOpacity(ui.value / 100);
+      }
+    });   
+    $("#ribbonOverlayOpacitySlider").slider({
+      min: 0,
+      max: 100,
+      value: rc.ribbonOverlayOpacity() * 100,
+      animate: "fast",
+      slide: function(event, ui) {
+        rc.ribbonOverlayOpacity(ui.value / 100);
+      }
+    });
+    $("#axisOpacitySlider").slider({
+      min: 0,
+      max: 100,
+      value: rc.axisOpacity() * 100,
+      animate: "fast",
+      slide: function(event, ui) {
+        rc.axisOpacity(ui.value / 100);
+      }
+    });
+    $("#discreteThresholdSlider").slider({
+      min: 0,
+      max: 25,
+      value: rc.discreteThreshold(),
+      animate: "fast",
+      slide: function(event, ui) {
+        rc.discreteThreshold(ui.value, false);
+      },
+      change: function(event, ui) {
+        rc.discreteThreshold(ui.value);
+      }
+    });
+    $("#curveSpreadSlider").slider({
+      min: 0,
+      max: 100,
+      value: rc.curveSpread() * 100,
+      animate: "fast",
+      slide: function(event, ui) {
+        rc.curveSpread(ui.value / 100);
+      }
+    });    
+    $("#curveStepsSlider").slider({
+      min: 1,
+      max: 20,
+      value: rc.curveSteps(),
+      animate: "fast",
+      slide: function(event, ui) {
+        rc.curveSteps(ui.value);
+      }
+    });    
+    $("#curveTensionSlider").slider({
+      min: 0,
+      max: 100,
+      value: rc.curveTension() * 100,
+      animate: "fast",
+      slide: function(event, ui) {
+        rc.curveTension(ui.value / 100);
+      }
+    });
+    $("#transitionTimeSlider").slider({
+      min: 0,
+      max: 2000,
+      value: rc.transitionTime(),
+      animate: "fast",
+      slide: function(event, ui) {
+        rc.transitionTime(ui.value);
+      }
+    });  
+    $("#labelAngleSlider").slider({
+      min: 0,
+      max: 90,
+      value: rc.labelAngle(),
+      animate: "fast",
+      slide: function(event, ui) {
+        rc.labelAngle(ui.value);
+      }
+    });  
+    $("#minRelationSlider").slider({
+      min: 0,
+      max: 100,
+      value: rc.minRelation() * 100,
+      animate: "fast",
+      slide: function(event, ui) {
+        rc.minRelation(ui.value / 100);
+      }
+    });  
+    $("#chordWidthSlider").slider({
+      min: 0,
+      max: 100,
+      value: rc.chordWidth() * 100,
+      animate: "fast",
+      slide: function(event, ui) {
+        rc.chordWidth(ui.value / 100);
+      }
+    });
+    $("#showRibbonsButton").button()
+      .prop("checked", rc.showRibbons()).button("refresh")
+      .click(function(event) {
+        rc.showRibbons(event.target.checked);
+      });   
+    $("#useFilterButton").button()
+      .prop("checked", rc.useFilter()).button("refresh")
+      .click(function(event) {
+        rc.useFilter(event.target.checked);
+      });
+    $("#decorateAxesButton").button()
+      .prop("checked", rc.decorateAxes()).button("refresh")
+      .click(function(event) {
+        rc.decorateAxes(event.target.checked);
+      });
+  });
+}
+
+</script>
+</body>
+</html>

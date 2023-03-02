@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>  
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <title>Visualize Health Informatics</title>
+  
+  <link type="text/css" rel="stylesheet" href="shared/shiny.css"/>
+  <link type="text/css" rel="stylesheet" href="lib/jquery-ui.css"/>
+  <link type="text/css" rel="stylesheet" href="lib/layout-default-latest.css"/>
+  
+  <script type="text/javascript" src="shared/jquery.js"></script>
+  <script type="text/javascript" src="shared/shiny.js"></script> 
+  <script type="text/javascript" src="lib/jquery-ui.js"></script>
+  <script type="text/javascript" src="lib/jquery.layout-latest.js"></script>  
+  <script type="text/javascript" src="lib/d3.v3.js"></script>
+  
+  <link type="text/css" rel="stylesheet" href="d3.summaryView.css"/>
+  <link type="text/css" rel="stylesheet" href="d3.quantitativeSets.css"/>
+   
+  <script type="text/javascript" src="d3.summaryView.js"></script>
+  <script type="text/javascript" src="d3.quantitativeSets.js"></script>
+</head>
+
+<!-- Set up page -->
+<body>    
+
+<div class="ui-layout-north">
+  Dataset: <select id="datasetSelect" name="datasetSelect">
+    <option disabled selected>--select dataset--</option>
+  </select> 
+</div>
+
+<div id="summaryViewDiv" class="ui-layout-west"></div>
+<div id="quantitativeSetsDiv" class="ui-layout-center"></div>
+
+<script>
+
+// Execute function body when the HTML document is ready
+$(document).ready(function() {
+  // Create d3 visualizations
+  var qs = d3.quantitativeSets();
+    
+  var sv = d3.summaryView()
+      .on("showDimension", function(name, selected) {
+        qs.showDimension(name, selected);
+      });
+            
+  // Create jQuery UI layout
+  createLayout();
+  
+  // Test sending data to shiny server
+  d3.select("#quantitativeSets").on("click", function() {
+    Shiny.onInputChange("test", Math.random());
+  });
+  
+  // Receive available datasets from server
+  Shiny.addCustomMessageHandler("onDatasets", function(datasets) {   
+    if (!datasets) return;
+    
+    // Get the select input
+    var select = document.getElementById("datasetSelect");
+    
+    // Keep first --select dataset-- option
+    select.options.length = 1;
+    
+    // Add options for each dataset
+    datasets.forEach(function(d) { select.options.add(new Option(d)); });
+  });	
+  
+  // Receive summary data from server
+  Shiny.addCustomMessageHandler("onSummaryData", function(summaryData) {    
+    if (!summaryData) return;
+    
+    // Visualize data
+    d3.select("#summaryViewDiv")
+      .datum(summaryData)
+      .call(sv);      
+      
+    d3.select("#quantitativeSetsDiv")
+      .datum(summaryData)
+      .call(qs);
+  });
+  
+  // Create jquery-ui layout
+  function createLayout() {
+    var layout = $("body").layout({ 
+      applyDemoStyles: true,
+      north__resizable: false,
+      center__onresize: function(pane, $pane, paneState, paneOptions) {
+        qs  .width(paneState.innerWidth)
+            .height(paneState.innerHeight);
+      }
+    }).resizeAll();
+  }
+});
+
+</script>
+
+</body>
+</html>

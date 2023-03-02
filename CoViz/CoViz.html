@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html>
+  
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <title> Co-occurrence Visualization </title>
+  <script src="d3.v3.min.js"></script>
+  
+  <style>
+    .bar {
+      fill: #1f77b4;
+      text-anchor: end;
+    }
+
+    .node {
+      fill: #1f77b4;
+      stroke: #fff;
+      stroke-width: 1.5px;
+      text-anchor: middle;
+    }
+
+    .link {
+      stroke: darkgrey;
+    }
+
+    .cell {
+    //  fill: #1f77b4;
+      fill: #070605 ;
+    }
+
+    .faded {
+      fill: #e7f1f7;
+    }
+
+    .primary {
+      fill: firebrick;
+    }
+
+    .secondary {
+      fill: #e8bdbd;
+    }
+
+    .strokePrimary {
+      stroke: firebrick;
+    }
+
+    .label {
+      stroke: none;
+      dominant-baseline: middle;
+      font-size: x-small;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<!-- Set up page -->
+<body>    
+  <p>
+  <div id="guiMain">
+    Load data: <input type="file" id="dataSelect"/>
+  </div>
+  </p>
+  <div id="bar1">
+    <svg id="svgBar"></svg>
+  </div>
+  <div style="float: left">
+    <svg id="svgMatrix"></svg>
+    <svg id="svgBar2"></svg>
+    <div id="guiMatrix">
+      Order <select id="matrixOrder">
+        <option value="name">by Name</option>
+        <option value="frequency">by Frequency</option>
+        <option value="connectivity">by Connectivity</option>
+        <option value="maxLink">by Maximum Link Strength</option>      
+      </select>
+    </div>
+  </div>
+  <div style="float: left">
+    <svg id="svgForce">
+      <g id="forceLinks"></g>
+      <g id="forceNodes"></g>
+      <circle id="border1"></circle>
+      <circle id="border2"></circle>
+    </svg>
+    <div id="guiForce">
+    <p>
+      Min Link<input type="range" name="forceMinLink" id="forceMinLink" min="1" max="250" value="10">
+      Max Link<input type="range" name="forceMaxLink" id="forceMaxLink" min="1" max="250" value="150">
+    </p>
+    <p>
+      Charge<input type="range" name="forceCharge" id="forceCharge" min="1" max="100" value="30">
+      Gravity<input type="range" name="forceGravity" id="forceGravity" min="1" max="20" value="5">
+    </p>    
+    <p>
+      Link Threshold<input type="range" name="forceLinkThreshold" id="forceLinkThreshold" min="1" max="3" value="2">
+    </p>
+    </div>
+  </div>
+  
+<!-- Visualization -->  
+<script>
+  
+  
+// Callback for file selection
+function handleDataSelect(event) {
+  var url = window.URL.createObjectURL(event.target.files[0]);
+  d3.csv(url, loadData);  
+}
+
+document.getElementById("dataSelect").addEventListener("change", handleDataSelect, false);
+
+
+// Set up static visualization elements
+var width = 500,
+    height = 500;
+var barWidth = width,   
+    barHeight = height / 4;
+
+var svgBar = d3.select("#svgBar")
+    .attr("width", barWidth)
+    .attr("height", barHeight);
+    
+var svgMatrix = d3.select("#svgMatrix")
+    .attr("width", width)
+    .attr("height", height);
+        
+var svgBar2 = d3.select("#svgBar2")
+    .attr("width", barHeight)
+    .attr("height", barWidth)
+    .style("margin-left", "10px");
+    
+var svgForce = d3.select("#svgForce")
+    .attr("width", width)
+    .attr("height", height);
+    
+svgForce.select("#border1")
+    .attr("r", 3 * width / 4 - 0.5)
+    .attr("cx", width / 2)
+    .attr("cy", width / 2)
+    .style("fill", "none")
+    .style("stroke", "white")
+    .style("stroke-width", width / 2);
+        
+svgForce.select("#border2")
+    .attr("r", width / 2 - 0.5)
+    .attr("cx", width / 2)
+    .attr("cy", width / 2)
+    .style("fill", "none")
+    .style("stroke", "#e3ddd8");
+
+var force = d3.layout.force()
+    .gravity(d3.select("#forceGravity").attr("value") / 100)
+    .charge(-d3.select("#forceCharge").attr("value"))
+    .size([width, height]); 
+
+
+// Load and visualize data
+function loadData(error, data) {
+  if (error) console.log(error);
+  
+  //////////////////////////////////////////////////////////////////////////////
+  // XXX: Code to compute data element value co-occurrence. Should not be used for all input files
+/*
+  var de = d3.keys(data[0]).map(function(d) { return { name: d }; });
+  de.forEach(function(d) { 
+    var values = d3.set();
+    data.forEach(function(e) { values.add(e[d.name]); });
+    d.values = values.values();
+  });
+  
+  var dv = d3.merge(de.map(function(d) { return d.values.map(function(e) { return d.name + '_' + e; }); }));
+ 
+  var mat = {};
+  dv.forEach(function(d) { 
+    mat[d] = {};
+    mat[d][""] = d;
+    dv.forEach(function(e) { 
+      mat[d][e] = 0;
+    });
+  });
+
+  data.forEach(function(d) { 
+    var values = de.map(function(e) { return e.name + '_' + d[e.name]; });
+    console.log(values);
+    values.forEach(function(d) { values.forEach(function(e) { mat[d][e] = mat[d][e] + 1; }); });
+  });
+  
+  var mat2 = dv.map(function(d) { return mat[d]; });  
+  
+  data = mat2;
+*/  
+  //////////////////////////////////////////////////////////////////////////////
+  
+  var graph = createGraph(data); 
+
+  // Force-directed layout  
+  var radiusScale = d3.scale.linear()
+      .domain([1, d3.max(graph.nodes, function(d) { return d.value; })])
+      .range([5, 20]);
+
+  var nodeOpacityScale = d3.scale.linear()
+      .domain([0, d3.max(graph.nodes, function(d) { return d.connections; })])
+      .range([0.1, 1.0]);
+
+  var distanceScale = d3.scale.linear()
+      .range([10, 150]);
+
+  var linkWidthScale = d3.scale.linear()
+      .range([2, 10]);      
+
+  var linkOpacityScale = d3.scale.linear()
+      .range([0.25, 1.0]);  
+
+  // The force directed layout replaces the source and target indeces with objects.
+  // Therefore, do this for all, and then replace with just the links we want
+  // so that the matrix view can use the same data.
+  force
+      .nodes(graph.nodes)
+      .links(graph.links)
+      .start();
+
+  var node = d3.select();
+  var bar = d3.select();
+  var bar2 = d3.select();
+
+  var link, links;
+  updateLinks(d3.max(graph.links, function(d) { return d.value; }) / 2);
+
+  var node = svgForce.select("#forceNodes").selectAll(".node")
+      .data(graph.nodes, function(d) { return d.name; });
+
+  var nodeEnter = node.enter().append("g")
+      .attr("class", "node")      
+      .call(force.drag)  
+      .on("mouseover", function(d, i) { 
+        // This node
+        d3.select(this).classed("primary", true);
+        bar.classed("primary", function(e, j) { return i === j; });   
+        bar2.classed("primary", function(e, j) { return i === j; });   
+        barText.classed("primary", function(e, j) { return i === j; });           
+        cell.classed("primary", function(e) { return e.x === i || e.y === i; });
+
+        // Linked
+        node.classed("secondary", function(e, j) { return d.links.indexOf(j) >= 0; });
+        bar.classed("secondary", function(e, j) { return d.links.indexOf(j) >= 0; });
+        bar2.classed("secondary", function(e, j) { return d.links.indexOf(j) >= 0; });
+        barText.classed("secondary", function(e, j) { return d.links.indexOf(j) >= 0; });
+
+        applyLabels(this);
+      })
+      .on("mouseout", clear);
+
+  nodeEnter.append("circle")
+      .attr("r", 0);
+
+  nodeEnter.append("text")
+      .text(function(d) { return d.name; })
+      .attr("class", "label")
+      .style("fill", "none");
+
+  node.select("circle").transition()
+      .attr("r", function(d) { return radiusScale(d.value); });
+
+  node.classed("faded", function(d) { return d.weight === 0;});
+
+  node.exit().remove(); 
+
+  force.on("tick", function() {
+    link.attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+
+    node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+  });
+
+
+  // Matrix
+  var matrix = [];
+
+  // Create the matrix
+  graph.nodes.forEach(function(d, i, a) {
+    matrix[i] = d3.range(a.length).map(function(j) { 
+      return { x: j, y: i, z: 0, diagonal: i === j };
+    });
+  });
+
+  graph.links.forEach(function(d) {
+    matrix[d.source.index][d.target.index].z += d.value;
+    matrix[d.target.index][d.source.index].z += d.value;
+    matrix[d.source.index][d.source.index].z += d.value;
+    matrix[d.target.index][d.target.index].z += d.value;
+
+    matrix[d.source.index][d.target.index].source = d.source;
+    matrix[d.target.index][d.source.index].source = d.source;
+    matrix[d.source.index][d.source.index].source = d.source;
+    matrix[d.target.index][d.target.index].source = d.source;
+
+    matrix[d.source.index][d.target.index].target = d.target;
+    matrix[d.target.index][d.source.index].target = d.target;
+    matrix[d.source.index][d.source.index].target = d.target;
+    matrix[d.target.index][d.target.index].target = d.target;
+  });
+
+  // Precompute the orders.
+  var n = graph.nodes.length;
+  var orders = {
+    name: d3.range(n).sort(function(a, b) { return d3.ascending(graph.nodes[a].name.toLowerCase(), graph.nodes[b].name.toLowerCase()); }),
+    frequency: d3.range(n).sort(function(a, b) { return graph.nodes[b].value - graph.nodes[a].value; }),
+    connectivity: d3.range(n).sort(function(a, b) { return graph.nodes[b].links.length - graph.nodes[a].links.length; }),
+    maxLink: d3.range(n).sort(function(a, b) { 
+      var va = graph.nodes[a].links.length > 0 ? d3.max(graph.nodes[a].links, function(d) { return matrix[graph.nodes[a].index][d].z; }) : 0;
+      var vb = graph.nodes[b].links.length > 0 ? d3.max(graph.nodes[b].links, function(d) { return matrix[graph.nodes[b].index][d].z; }) : 0;
+      return vb - va; 
+    })
+  };  
+
+  var matrixXScale = d3.scale.ordinal()
+      .domain(orders.name)
+      .rangeBands([0, width]);
+
+  var matrixZScale = d3.scale.linear()
+      .domain([0, d3.max(links, function(d) { return d.value; })])
+      .range([0, 1]);
+
+  svgMatrix.selectAll(".row").remove();
+
+  var row = svgMatrix.selectAll(".row")
+      .data(matrix);
+
+  row.enter().append("g")
+      .attr("class", "row");
+
+//   row.exit().remove();
+
+  row .attr("transform", function(d, i) { return "translate(0," + matrixXScale(i) + ")"; })    
+      .each(createRow);
+
+  function createRow(row) {
+    var c = d3.select(this).selectAll(".cell")
+        .data(row.filter(function(d) { return d.z; }));
+
+    c.enter().append("rect")  
+        .attr("class", "cell")          
+        .on("mouseover", function(d) { 
+          // This node
+          cell.classed("primary", function(e) { return (d.x === e.x && d.y === e.y) || (d.x === e.y && d.y === e.x); });
+          bar.classed("primary", function(e, i) { return d.x === i || d.y === i; });
+          bar2.classed("primary", function(e, i) { return d.x === i || d.y === i; });
+          barText.classed("primary", function(e, i) { return d.x === i || d.y === i; });
+          node.classed("primary", function(e, i) { return d.source.index === i || d.target.index === i; });
+          link.classed("strokePrimary", function(e) { return (d.x === e.source.index && d.y === e.target.index) ||
+                                                             (d.x === e.target.index && d.y === e.source.index); });  
+
+          applyLabels();                                                   
+        })
+        .on("mouseout", clear);
+
+    c.exit().remove();
+
+    c   .attr("x", function(d) { return matrixXScale(d.x); })
+        .attr("width", matrixXScale.rangeBand())
+        .attr("height", matrixXScale.rangeBand())
+        .style("fill-opacity", function(d) { return d.diagonal ? 0 : matrixZScale(d.z); })       
+  }
+
+  var cell = d3.selectAll(".cell");
+
+  // Bar chart   
+  var barHeightScale = d3.scale.linear()
+      .domain([0, d3.max(graph.nodes, function(d) { return d.value; })])
+      .range([0, barHeight]);
+
+  // XXX: Removing because indeces can get messed up for ordering
+  d3.selectAll(".bar").remove();
+
+  var bar = svgBar.selectAll(".bar")
+      .data(graph.nodes, function(d) { return d.name; });
+
+  bar.enter().append("rect")
+      .attr("class", "bar")        
+      .on("mouseover", function(d, i) { 
+        // This node
+        d3.select(this).classed("primary", true);
+        bar.classed("primary", function(e, j) { return i === j });
+        barText.classed("primary", function(e, j) { return i === j });
+        node.classed("primary", function(e, j) { return i === j });        
+        cell.classed("primary", function(e) { return e.x === i || e.y === i });
+
+        // Links
+        node.classed("secondary", function(e, j) { return d.links.indexOf(j) >= 0 });
+        bar.classed("secondary", function(e, j) { return d.links.indexOf(j) >= 0; });
+        bar2.classed("secondary", function(e, j) { return d.links.indexOf(j) >= 0; });
+        barText.classed("secondary", function(e, j) { return d.links.indexOf(j) >= 0; });
+
+        applyLabels();
+      })
+      .on("mouseout", clear);  
+
+  bar.classed("faded", function(d) { return d.weight === 0; })
+    .transition()
+      .attr("x", function(d, i) { return matrixXScale(i); })
+      .attr("y", function(d) { return barHeight - barHeightScale(d.value); })
+      .attr("height", function(d) { return barHeightScale(d.value); })
+      .attr("width", matrixXScale.rangeBand());    
+
+  bar.exit().remove();
+
+  // Bar chart 2
+  // XXX: This should be a reusable component
+  var bar2 = svgBar2.selectAll(".bar")
+      .data(graph.nodes, function(d) { return d.name; });
+
+  bar2.enter().append("g")
+      .attr("class", "bar")      
+      .on("mouseover", function(d, i) { 
+        // This node
+        d3.select(this).classed("primary", true);
+        bar.classed("primary", function(e, j) { return i === j });
+        barText.classed("primary", function(e, j) { return i === j });
+        node.classed("primary", function(e, j) { return i === j });        
+        cell.classed("primary", function(e) { return e.x === i || e.y === i });        
+
+        // Links
+        node.classed("secondary", function(e, j) { return d.links.indexOf(j) >= 0 });
+        bar.classed("secondary", function(e, j) { return d.links.indexOf(j) >= 0; });
+        bar2.classed("secondary", function(e, j) { return d.links.indexOf(j) >= 0; });
+        barText.classed("secondary", function(e, j) { return d.links.indexOf(j) >= 0; });
+
+        applyLabels();
+      })
+      .on("mouseout", clear)
+   .append("rect");
+
+  bar2.classed("faded", function(d) { return d.weight === 0; }) 
+    .transition()
+      .attr("transform", function(d, i) { return "translate(0," + matrixXScale(i) + ")"; });
+
+  bar2.select("rect").transition()
+      .attr("height", matrixXScale.rangeBand())
+      .attr("width", function(d) { return barHeightScale(d.value); });
+
+  bar2.exit().remove();
+
+  // XXX: Place labels over matrix instead of attached to bar
+  var barText = svgMatrix.selectAll(".bar")
+      .data(graph.nodes, function(d) { return d.name; });
+
+  barText.enter().append("text")
+      .text(function(d) { return d.name; })
+      .attr("class", "bar label")
+      .style("fill", "none");
+
+  barText.exit().remove();
+
+  barText
+      .attr("x", width)
+      .attr("y", function(d, i) { return matrixXScale(i) + matrixXScale.rangeBand() / 2; });
+
+  createGUI();      
+
+  function applyLabels() {      
+    // Labels
+    d3.selectAll(".secondary").select("text")
+        .style("fill", "dimgrey"); 
+
+    d3.selectAll(".primary").select("text")
+        .style("fill", "black");
+
+    d3.selectAll("text").filter(".secondary")
+        .style("fill", "dimgrey"); 
+
+    d3.selectAll("text").filter(".primary")
+        .style("fill", "black");
+
+    // Fade faded more
+    d3.selectAll(".faded").attr("fill-opacity", 0.25); 
+
+    // Highlight selected element
+    d3.selectAll(".primary").attr("fill-opacity", 1);
+  }
+
+  function clear() {
+    d3.selectAll(".primary, .secondary, .strokePrimary").classed("primary secondary strokePrimary", false);        
+    d3.selectAll(".faded").attr("fill-opacity", 1); 
+    d3.selectAll("text").style("fill", "none");
+  }
+
+  function createGUI() { 
+    // Select matrix order
+    d3.select("#matrixOrder")
+        .on("change", function() {
+          matrixXScale.domain(orders[this.value]);
+
+          var duration = 1500;
+
+          svgMatrix.transition()
+              .duration(duration)
+            .selectAll(".row")
+              //.delay(function(d, i) { return matrixXScale(i) * 4; })
+              .attr("transform", function(d, i) { return "translate(0," + matrixXScale(i) + ")"; })
+            .selectAll(".cell")
+              //.delay(function(d) { return matrixXScale(d.x) * 4; })
+              .attr("x", function(d) { return matrixXScale(d.x); });       
+
+          svgBar.transition()
+              .duration(duration)
+            .selectAll(".bar")
+              //.delay(function(d, i) { return matrixXScale(i) * 4; })
+              .attr("x", function(d, i) { return matrixXScale(i); });
+
+          svgBar2.transition()
+              .duration(duration)
+            .selectAll(".bar")
+              //.delay(function(d, i) { return matrixXScale(i) * 4; })
+              .attr("transform", function(d, i) { return "translate(0," + matrixXScale(i) + ")"; });
+
+          svgMatrix.transition()
+              .duration(duration)
+            .selectAll(".label")
+              //.delay(function(d, i) { return matrixXScale(i) * 4; })
+              .attr("y", function(d, i) { return matrixXScale(i) + matrixXScale.rangeBand() / 2; });
+        });
+
+    // Force sliders
+    d3.select("#forceMinLink")
+        .on("input", function() {
+          distanceScale.range([this.value, distanceScale.range()[1]]);
+          force.linkDistance(function(d) { return distanceScale(1 / d.value); }); 
+          force.start();
+        });
+
+    d3.select("#forceMaxLink")
+        .on("input", function() {
+          distanceScale.range([distanceScale.range()[0], this.value]);
+          force.linkDistance(function(d) { return distanceScale(1 / d.value); }); 
+          force.start();
+        });
+
+    d3.select("#forceCharge")
+        .on("input", function() {
+          force.charge(-this.value); 
+          force.start();
+        });  
+
+    d3.select("#forceGravity")
+        .on("input", function() {
+          force.gravity(this.value / 100); 
+          force.start();
+        });
+
+    d3.select("#forceLinkThreshold")
+  //      .attr("max", d3.max(graph.links, function(d) { return d.value; }))
+  .attr("max", Math.floor(d3.max(graph.links, function(d) { return d.value; }) * 100))
+  .attr("min", 0)
+  //      .attr("value", d3.max(graph.links, function(d) { return d.value; }) - d3.min(graph.links, function(d) { return d.value; }))
+          .attr("value", Math.floor(d3.max(graph.links, function(d) { return d.value; }) * 50))
+        .on("input", function() {
+          updateLinks(this.value / 100);                                       
+        });    
+  }
+
+  function updateLinks(linkThreshold) {
+    links = graph.links.filter(function(d) { return d.value >= linkThreshold; });
+    distanceScale.domain([1 / d3.max(links, function(d) { return d.value; }),
+                          1 / d3.min(links, function(d) { return d.value; })]);
+    linkWidthScale.domain([d3.min(links, function(d) { return d.value; }),
+                           d3.max(links, function(d) { return d.value; })]);     
+    linkOpacityScale.domain([d3.min(links, function(d) { return d.value; }),
+                             d3.max(links, function(d) { return d.value; })]);
+
+    force
+        .links(links)
+        .linkDistance(function(d) { return distanceScale(1 / d.value); })
+        .start();
+
+    link = svgForce.select("#forceLinks").selectAll(".link")
+        .data(links, function(d) { return d.source.index + ", " + d.target.index; });
+
+    link.enter().append("line")
+        .attr("class", "link") 
+        .on("mouseover", function(d) { 
+          // These nodes
+          d3.select(this).classed("strokePrimary", true);
+          node.classed("primary", function(e, j) { return d.source.index === j || d.target.index === j; });
+          bar.classed("primary", function(e, j) { return d.source.index === j || d.target.index === j; });   
+          bar2.classed("primary", function(e, j) { return d.source.index === j || d.target.index === j; });  
+          barText.classed("primary", function(e, j) { return d.source.index === j || d.target.index === j; });            
+          cell.classed("primary", function(e) { return (d.source.index === e.x && d.target.index === e.y) ||
+                                                       (d.source.index === e.y && d.target.index === e.x); });
+
+          applyLabels();                                                        
+        })
+        .on("mouseout", clear);
+
+    link.exit().remove();
+
+    link.style("stroke-width", function(d) { return linkWidthScale(d.value); })
+        .style("stroke-opacity", function(d) { return linkOpacityScale(d.value); });
+
+    node.classed("faded", function(d) { return d.weight === 0; });
+    bar.classed("faded", function(d) { return d.weight === 0; }); 
+    bar2.classed("faded", function(d) { return d.weight === 0; });
+  }
+}
+
+function createGraph(data) {
+  // Normalize
+
+  data.forEach(function(d) {
+    var keys = d3.keys(d).filter(function(e) { return e !== "" &&  e !== d[""]; });
+    var maxVal = d3.max(keys, function(e) { return +d[e]; });
+    keys.forEach(function(e) {
+ //     d[e] = +d[e] / maxVal;
+ //d[e] = +d[e] / d[d[""]];
+ d[e] = +d[e];
+    });
+  });
+  
+  
+  // Create associative array of data
+  data.sort(function(a, b) { return +b[b[""]] - +a[a[""]]; });
+  var data2 = [];
+  data.forEach(function(d) { data2[d[""]] = d; });
+  
+  console.log(data)
+  console.log(data2)
+  
+  var graph = {};
+  
+  graph.nodes = data.map(function(d, i) { return { name: d[""], value: +d[d[""]], links: [], index: i }; });
+  
+  graph.links = [];
+  for (var i = 0; i < graph.nodes.length; i++) {
+    var n1 = graph.nodes[i].name;
+    for (var j = i + 1; j < graph.nodes.length; j++) {
+//    for (var j = 0; j < graph.nodes.length - 1; j++) {
+      if (i === j) continue;
+      
+      var n2 = graph.nodes[j].name;
+      var v = Math.max(+data2[n1][n2], +data2[n2][n1]);
+ //     var v = +data2[n1][n2];
+      
+      if (v > 0) {
+        graph.links.push({ source: i, target: j, value: v });
+        graph.nodes[i].links.push(j);
+        graph.nodes[j].links.push(i);
+      }
+    }
+  }  
+  
+  console.log(graph);
+  
+  return graph;
+}
+
+</script>
+</body>
+</html>

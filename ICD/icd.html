@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>  
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <title> ICD </title>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.min.css">
+  
+  <script src="d3.v3.min.js"></script>
+  
+  <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script> 
+  <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.min.js"></script>
+</head>
+
+<body>
+
+<!-- Set up page -->
+<div>  
+  <div id="gui" style="position: fixed;">   
+    <table>
+      <tr>
+        <td>Load data:</td>
+        <td><input type="file" id="dataSelect"/></td>
+      </tr>
+    </table>
+  </div>
+  <div id="main" style="float: left; margin-left: 400px"></div>
+</div>
+
+<!-- Visualization -->
+<script type="text/javascript">
+
+
+// Callback for file selection
+function handleDataSelect(event) { 
+  var url = window.URL.createObjectURL(event.target.files[0]),
+      fileName = event.target.files[0].name;
+    
+  fileName.indexOf(".json") !== -1 ? d3.json(url, loadData) : d3.csv(url, loadData);
+}
+
+document.getElementById("dataSelect").addEventListener("change", handleDataSelect, false);
+
+
+// JQuery GUI
+createGUI();
+
+
+// Load the data
+function loadData(error, data) {
+  if (error) console.log(error);
+  
+  // Create list of diagnoses
+  var diagnoses = [];
+  var names = d3.map();
+  data.forEach(function(d) { 
+    var icd = d["ICD Diagnosis Code"].trim();    
+    if (icd.length > 0) {    
+      diagnoses[icd] = { name: d["Diagnosis Name"].trim(), values: {} }; 
+    }
+  });
+    
+  // ICD-9 categories
+  var icd9Cats = d3.scale.threshold()
+      .domain([140, 240, 280, 290, 320, 360, 390, 460, 520, 580, 630, 680, 710, 740, 760, 780, 800, 1000])
+      .range(["Infectious and parasitic disease",
+              "Neoplasms",
+              "Endocrine, nutritional and metabolic diseases, and immunity disorders",
+              "Diseases of the blood and blood-forming organs",
+              "Mental disorders",
+              "Diseases of the nervous system",
+              "Diseases of the sense organs",
+              "Diseases of the circulatory system",
+              "Diseases of the respiratory system",
+              "Diseases of the digestive system",
+              "Diseases of the genitourinary system",
+              "Complications of pregnancy, childbirth, and the puerperium",
+              "Diseases of the skin and subcutaneous tissue",
+              "Diseases of the musculoskeletal system and connective tissue",
+              "Congenital anomalies",
+              "Certain conditions originating in the perinatal period",
+              "Symptoms, signs, and ill-defined conditions",
+              "Injury and poisoning",
+              "External causes of injury and supplemental classification"]);
+            
+  var codes = d3.keys(diagnoses);              
+  codes.forEach(function(d) { diagnoses[d].category = icd9Cats(d); });
+  
+  console.log(diagnoses);
+}
+
+function createGUI() {
+}
+
+</script>
+</body>
+</html>

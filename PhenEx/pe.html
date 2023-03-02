@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>  
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <title> PhenEx </title>
+  <link rel="stylesheet" href="d3.phenEx.css">
+<!-- <script src="http://d3js.org/d3.v3.js"></script> -->
+<!-- <script src="http://d3js.org/d3.v3.min.js"></script> -->
+<!-- <script src="d3.v3.js"></script> -->
+  <script src="d3.v3.min.js"></script>
+  <script src="d3.phenEx.js"></script>
+</head>
+
+<body>
+
+<!-- Set up page -->
+<div id="gui">
+  Load data: <input type="file" id="dataSelect"/>
+</div>
+
+<div id="vis">
+</div>
+
+<!-- PhenEx -->
+<script type="text/javascript">
+
+// Create the phenEx function
+var phenEx = d3.phenEx()
+    .width(1000)
+    .height(1000)
+    //.centerValue({ name: "Diabetes", value: "Y" });
+  
+// Callback for file selection
+function handleDataSelect(event) {
+  var url = window.URL.createObjectURL(event.target.files[0]);
+  d3.csv(url, loadData);  
+}
+
+document.getElementById("dataSelect").addEventListener("change", handleDataSelect, false);
+
+// Load the data
+function loadData(error, data) {
+  if (error) console.log(error);
+  
+  d3.select("#vis")
+    .datum(data)
+    .call(phenEx);  
+}
+
+</script>
+</body>
+</html>

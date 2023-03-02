@@ -1,0 +1,106 @@
+.curve   {
+  fill: none;
+  stroke: grey;
+  stroke-opacity: 0.1;
+  stroke-width: 2;
+}
+
+.curve .selected  {
+  stroke-opacity: 0.5;
+}
+/*
+.line:hover {
+  stroke-opacity: 1;
+  stroke: red;
+}
+*/
+.axis {
+  font-size: small;
+  fill: white;
+  stroke: black;
+}
+
+.label {
+  font-size: small;
+  stroke: none;
+}
+
+.label .nameLabel {
+  fill: #666;
+}
+
+.label .nameLabel:hover {
+  fill: black;
+}
+
+.label .minMaxLabel {
+  fill: #999;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.label .minMaxLabel:hover {
+  fill: black;
+}
+
+.label .valueLabel {
+  fill: black;
+  fill-opacity: 0.5;
+  text-anchor: middle;
+}
+
+.label .tempLabel {
+  fill: grey;
+  text-anchor: middle;
+}
+
+.unselectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;    
+}
+
+/*
+.label .valueLabel:hover {
+  fill-opacity: 1;
+}
+*/
+
+.circle {
+  fill: #eee;
+}
+
+.circle:hover {
+  fill: #999;
+}
+
+.ribbon {
+  stroke: none;
+}
+
+.ribbonOutline { 
+  fill: none;
+  stroke-width: 2;
+}
+
+.quartile {
+  stroke: none;
+}
+
+.median {
+  fill: none;
+  stroke-width: 3;
+  stroke-dasharray: 10, 10;
+}
+
+.brush {
+  fill: none;
+  stroke: grey;
+  stroke-width: 2;
+  stroke-opacity: 0.5;
+  stroke-linecap: round;
+  stroke-dasharray: 5, 5;
+}

@@ -1,0 +1,37 @@
+/* Top-level class to avoid conflicts */
+.pathMap {
+}
+
+.pathMap .row {
+}
+
+.pathMap .row .cell {
+}
+
+.pathMap .columnSelect {
+    fill: none;
+    stroke: black;
+    stroke-width: 2;
+    pointer-events: none;
+}
+
+.pathMap .columnHighlight {
+    fill: none;
+    stroke: black;
+    stroke-width: 2;
+    stroke-opacity: 0.5;
+    pointer-events: none;
+}
+
+.pathMap .rowLine {
+    stroke: black;
+    stroke-width: 2;
+    pointer-events: none;
+}
+
+.pathMap .rowLine2 {
+    stroke: black;
+    stroke-width: 2;
+    stroke-opacity: 0.5;
+    pointer-events: none;
+}

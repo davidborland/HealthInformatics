@@ -1,0 +1,28 @@
+/* Top-level class to avoid conflicts */
+.quantitativeSets {
+}
+
+.quantitativeSets .dimension {
+}
+
+.quantitativeSets .dimension .numeric {
+  fill: black;
+  stroke: black;
+}
+
+.quantitativeSets .dimension .categorical {
+  fill: none;
+  stroke: red;
+}
+
+.quantitativeSets .dimension .label {
+  cursor: ew-resize;
+  font-size: x-small;
+  fill: black;
+  stroke: none;
+}
+
+.quantitativeSets .dimension .label .handle {
+  cursor: default;
+  fill: dimgrey;
+}

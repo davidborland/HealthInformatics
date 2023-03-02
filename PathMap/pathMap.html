@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>  
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <title> Path map </title>
+  <link rel="stylesheet" href="d3.pathMap.css">
+<!-- <script src="d3.v3.js"></script> -->
+  <script src="d3.v3.min.js"></script>
+  <script src="d3.pathMap.js"></script>
+</head>
+  
+  <!-- Set up page -->
+<body>    
+  <div>  
+    <input type="file" id="dataSelect"/>
+  </div>
+  <p></p>
+  <div>
+    Sort by: <select id="sortBySelect">
+      <option value="weightedAverage">weighted average</option>
+      <option value="propagateForward">propagate forward</option>
+      <option value="propagateBackward">propagate backward</option>
+      <option value="lastValue">last value</option>
+      <option value="firstValue">first value</option>
+    </select>
+  </div>
+
+<!-- Path map -->
+<script type="text/javascript">
+
+// Create the path map function
+var pathMap = d3.pathMap()
+    .width(800)
+    .height(1400);
+
+// Callback for file selection
+document.getElementById("dataSelect").addEventListener("change", function(event) {
+  d3.csv(window.URL.createObjectURL(event.target.files[0]), loadData);  
+}, false);
+
+// Callback for sort method
+d3.select("#sortBySelect").on("change", function() {
+  pathMap.sortBy(this.value);
+});
+
+// Load the data
+function loadData(error, data) {
+  if (error) console.log(error);
+  
+  // Remove demographic info for now
+  var columns = d3.keys(data[0]);
+  for (var i = 0; i < columns.length; i++) {
+    if (columns[i] === "Death") break;
+    else data.forEach(function(d) { delete d[columns[i]]; });
+  }
+  
+  // Remove any existing visualization
+  d3.select("svg").remove();
+  
+  // Create the visualization
+  d3.select("body")
+      .datum(data)
+      .call(pathMap);
+}
+
+</script>
+</body>
+</html>

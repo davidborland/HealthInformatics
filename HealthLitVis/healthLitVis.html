@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>  
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <title> Health Literature Visualization </title>
+  <link rel="stylesheet" href="d3.healthLitScatter.css">
+  <link rel="stylesheet" href="d3.healthLitTerms.css">
+<!-- <script src="d3.v5.js"></script> -->
+  <script src="d3.v5.min.js"></script>
+  <script src="d3.healthLitScatter.js"></script>
+  <script src="d3.healthLitTerms.js"></script>
+</head>
+  
+<!-- Set up page -->
+<body>    
+  
+  <div id="Scatter" style="float: left;"></div>
+  <div id="Terms"></div>
+
+<!-- Visualization -->
+<script type="text/javascript">
+    
+// Dispatch for events
+var dispatch = d3.dispatch("highlight", "unhighlight",
+                           "highlightDocument", "highlightTerm",
+                           "freeze");
+
+// Create the health literature visualization functions
+var healthLitScatter = d3.healthLitScatter()
+    .width(1200)
+    .height(1200);
+  
+var healthLitTerms = d3.healthLitTerms()
+    .width(1200)
+    .height(1200);
+
+// Load the document/cluster data
+d3.csv("HealthLitData.csv", function(error, healthLitData) {
+  if (error) console.log(error);
+  
+  // Load the topic data
+  d3.csv("TopicPhrases.csv", function(error, topicData) {
+    if (error) console.log(error);
+    
+    // Process data
+    var data = processData(healthLitData, topicData);
+    
+    // Create the visualizations  
+    d3.select("#Scatter")
+        .datum(data)
+        .call(healthLitScatter);
+      
+    // Create the visualizations
+    d3.select("#Terms")
+        .datum(data)
+        .call(healthLitTerms);
+  });
+});
+
+function processData(healthLitData, topicData) {
+  // Initialize data
+  var documents = [],
+      clusters = [],
+      topics = [],
+      terms = [];
+  
+  // Process topic and document/cluster data
+  processTopicData(topicData);
+  processHealthLitData(healthLitData);
+  
+  // Return data
+  return { 
+    documents: documents,
+    clusters: clusters,
+    topics: topics,
+    terms: terms
+  };
+
+  // Strip opening and closing whitespace and remove double quotes and plus signs
+  function stripTerm(d) { return d.trim().replace(/[\"\+]/g, ""); }
+
+  // Return an array of all values with a given key prefix from an object
+  function keyPrefixArray(d, prefix) { 
+    // Get keys with prefix
+    var keys = d3.keys(d).filter(function(d) { return d.indexOf(prefix) > -1; });
+
+    // Make sure the keys are sorted
+    var n = prefix.length;
+    keys.sort(function(a, b) { return d3.ascending(+a.slice(n), +b.slice(n)); });
+
+    // Return the values
+    return keys.map(function(e) { 
+      var value = d[e],
+          number = +value;
+
+      // If not numeric, return string
+      return isNaN(number) ? value : number; 
+    });
+  }
+
+  function processTopicData(data) {
+    data.forEach(function(d) { 
+      var topic = {
+        id: d._topicid,
+        phrases: keyPrefixArray(d, "_name").map(function(d) { return stripTerm(d); }),
+        documents: [],
+        terms: []
+      };
+
+      // Add to topics          
+      topics.push(topic);
+    });
+  }
+
+  function processHealthLitData(data) {
+    // Create associative array for clusters
+    var clusterObject = {};
+
+    // Process data
+    data.forEach(function(d) {
+      // Get cluster id
+      var clusterId = d.TextCluster_cluster_,
+          cluster;            
+
+      // XXX: Hack to handle 'et al.'
+      function getDescription(d) {
+        var description = d.ClusterDescription.trim().split(/[ ]+/);
+
+        // Find 'et
+        var i = description.indexOf("'et");
+        if (i !== -1) {
+          // Replace 'et with et al. and remove al.'
+          description[i] = "et al.";
+          description.splice(i + 1, 1);
+        }
+
+        return description.map(function(d) { return stripTerm(d); });
+      }
+
+      // Check for existence of this cluster
+      if (!clusterObject.hasOwnProperty(clusterId)) {
+        // Create cluster
+        cluster = {
+          id: +clusterId,
+          means: keyPrefixArray(d, "_mean"),
+          rmsstd: d._rmsstd_,
+          x: d.X,
+          y: d.Y,
+          description: getDescription(d),
+          documents: [],
+          terms: []
+        };
+
+        // Add to cluster object
+        clusterObject[clusterId] = cluster;
+      }
+      else {
+        // Get cluster
+        cluster = clusterObject[clusterId];
+      }
+
+      var topicIds = keyPrefixArray(d, "TextTopic_").reduce(function(p, c, i) { 
+          if (c !== 0) p.push(i + 1); 
+          return p; 
+        }, []);
+
+      // Create document
+      var document = {
+        id: +d._document_,
+        name: d.NAME,
+        text: d.TEXT,
+        svd: keyPrefixArray(d, "TextCluster_SVD"),
+        cluster: cluster,
+        topics: topicIds.map(function(d) { return topics[d - 1]; })
+      };
+
+      // Add to documents
+      documents.push(document);        
+
+      // Add to this cluster
+      cluster.documents.push(document);
+
+      // Add to topics
+      document.topics.forEach(function(d) { d.documents.push(document); });
+    });
+
+    // Convert cluster object to array
+    clusters = d3.keys(clusterObject).map(function(d) { 
+      // Get the cluster with this id
+      var cluster = clusterObject[d]; 
+
+      // Add fractional size
+      cluster.fraction = cluster.documents.length / documents.length;
+
+      // Return the cluster
+      return cluster; 
+    });
+
+    // Sort clusters by fraction, so draw order is correct
+//        clusters.sort(function(a, b) { return d3.descending(a.fraction, b.fraction); });
+
+    // Compute x and y for topics, now that they are populated with documents
+    topics.forEach(function(d) { 
+      var x = 0,
+          y = 0,
+          numDocs = d.documents.length;
+
+      d.documents.forEach(function(d) { 
+        x += d.svd[0];
+        y += d.svd[1];
+      });
+
+      d.x = x / numDocs;
+      d.y = y / numDocs;
+    });
+
+    // Create term data
+    var termSet = d3.set();
+
+    clusters.forEach(function(d) {
+      d.description.forEach(function(d) {
+        termSet.add(d);
+      });
+    });
+
+    topics.forEach(function(d) {
+      d.phrases.forEach(function(d) {
+        termSet.add(d);
+      });
+    });
+
+    // Link term data
+    termSet.values().forEach(function(d) {
+      // Create term
+      var term = {
+        term: d,
+        clusters: [],
+        topics: []
+      };
+
+      // Add to terms
+      terms.push(term);
+
+      // Link to clusters
+      clusters.forEach(function(d) {
+        if (d.description.indexOf(term.term) !== -1) {
+          term.clusters.push(d);
+          d.terms.push(term);
+        }
+      });
+
+      // Link to topics
+      topics.forEach(function(d) {
+        if (d.phrases.indexOf(term.term) !== -1) {
+          term.topics.push(d);
+          d.terms.push(term);
+        }
+      });
+    });
+  }
+}
+
+</script>
+</body>
+</html>

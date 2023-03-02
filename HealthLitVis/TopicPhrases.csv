@@ -1,0 +1,11 @@
+_topicid,_docCutoff,_termCutoff,_name1,_name2,_name3,_name4,_name5,_numterms,_numdocs
+1,0.229,0.011," ""+query", temporal, +temporal abstraction, +abstraction," temporal""",1526,27
+2,0.211,0.011," ""+genome", +read, genomic, +gene," ngs""",1533,30
+3,0.19,0.011," ""+patient", care, patient, clinical," +physician""",1870,37
+4,0.173,0.011," ""+analyst", analytics, social, collaborative," +node""",2202,30
+5,0.183,0.01," ""phenotype", primary, icd-9-cm, +vertex," phenomics""",961,5
+6,0.098,0.011," ""st", nt, le, te," ic""",1740,13
+7,0.179,0.011," ""+cluster", +cluster, +distance, +plot," +projection""",1893,39
+8,0.187,0.01," ""carevis", asbru, +plan, +clinical guideline," aigner""",1454,15
+9,0.124,0.011," ""ehr", ehrs, ehr data, lifelines2," army""",1846,15
+10,0.157,0.011," ""+protein", +gene, acids, +pathway," biological""",1793,39

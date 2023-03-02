@@ -1,0 +1,26 @@
+/* Top-level class to avoid conflicts */
+.summaryView {
+}
+
+.summaryView .dimension {
+  fill: black;
+  stroke: black;
+}
+
+.summaryView  .dimension  .numeric {
+  fill: none;
+}
+
+.summaryView .dimension  .categorical {
+  fill: none;
+}
+
+.summaryView  .dimension  .button {
+  fill: dimgrey;
+  stroke: none;
+}
+
+.summaryView  .dimension  .label {
+  font-size: small;
+  stroke: none;
+}

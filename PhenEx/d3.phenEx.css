@@ -1,0 +1,9 @@
+/* Top-level class to avoid conflicts */
+.heatMap {
+}
+
+.heatMap .row {
+}
+
+.heatMap .row .cell {
+}

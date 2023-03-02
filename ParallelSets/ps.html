@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>  
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <title> Parallel Sets </title>
+  <link rel="stylesheet" href="d3.parsets.css">
+<!-- <script src="http://d3js.org/d3.v3.js"></script> -->
+<!-- <script src="http://d3js.org/d3.v3.min.js"></script> -->
+<!-- <script src="d3.v3.js"></script> -->
+<script src="d3.v3.min.js"></script>
+  <script src="d3.parsets.js"></script>
+</head>
+
+<!-- Set up page -->
+<body>    
+  
+<p>
+  <div id="gui">
+    Load data: <input type="file" id="dataSelect"/>
+  </div>
+</p>
+<div id="main">
+</div>
+
+<!-- Parallel sets -->
+<script>
+  
+// Create the parallel sets function
+var width = 1000,
+    height = 1000;
+
+
+var ps = d3.parsets()
+//    .width(height)
+//    .height(width);
+    .width(width)
+    .height(height);
+  
+// Callback for file selection
+function handleDataSelect(event) {
+  var url = window.URL.createObjectURL(event.target.files[0]);
+  d3.csv(url, loadData);  
+}
+
+document.getElementById("dataSelect").addEventListener("change", handleDataSelect, false);
+
+// Load the data
+function loadData(error, data) {
+  if (error) console.log(error);
+  
+  // Categorize numeric axes with many values
+  var threshold = 7;
+  
+  var dims = d3.keys(data[0]).filter(function(d) { return d !== ""; });
+  
+  dims.forEach(function(d) {
+    // Check for numeric data
+    var numeric = true;
+    data.forEach(function(e) { numeric = numeric && !isNaN(+e[d]); });
+    
+    if (numeric) {
+      // Get all values
+      var values = [];
+      data.forEach(function(e) { values.push(e[d]); });
+      
+      // Test threshold for number of unique values
+      if (d3.set(values).values().length > threshold) {
+        // Convert to number, and store all values
+        values = [];
+
+        data.forEach(function(e) { 
+          e[d] = +e[d]; 
+          values.push(e[d]);
+        });
+
+        values.sort(d3.ascending);        
+        
+        // Create threshold number of quantiles
+        var format = d3.format(".1f")
+        var q = [];
+        for (var i = 0; i < threshold; i++) {
+          q.push(format(d3.quantile(values, i / threshold)) + "-" +
+                 format(d3.quantile(values, (i + 1) / threshold)));
+        }
+        
+        // Create quantile scale
+        var scale = d3.scale.quantile()
+            .domain(values)
+            .range(q);
+          
+        // Replace values with quantiles
+        data.forEach(function(e) {
+          e[d] = scale(e[d]);
+        });
+      }
+    }
+  });
+  
+//  ps.dimensions(dims);
+  
+//  ps.dimensions(["lung_Combined_DSR", "extent", "average_score", "average_rank", "local_concentration", "ONS_Area_Class_Group"]  );
+//  ps.dimensions(["Relationship", "Job", "Advance_Directive", "UIC", "Organ_Donor", "Has_Allergy", "Blood_Type", "Gender", "Race", "Ethnicity", "MaritalStatus", "Rank", "Grade", "Category"])
+//ps.dimensions(["Allergen", "Drug_Vocab", "Reaction", "Severity_Description"]);
+//ps.dimensions(["Vaccine_Name", "Provider_Name"]);
+//ps.dimensions(["Drug_Name", "Sig", "Days_Of_Supply"]);
+//ps.dimensions(["Name", "Target_Area"]);
+//ps.dimensions(["Facility_Name", "Specialty", "Class", "Location", "Sex", "Primary_Clinic_Location"]);
+//ps.dimensions(["Gender", "Race", "Ethnicity", "Marital_Status", "Category", "Relationship", "Job", "City", "HasAllergy", "Blood_Type", ])
+  
+  ps.tension(0.75);
+  
+  d3.select("#main").append("svg")
+//      .attr("transform", "translate(" + width + ")rotate(90)")
+      .attr("height", height)  
+      .attr("width", width)         
+      .datum(data)
+    .call(ps);
+}
+
+</script>
+
+</body>
+</html>
+
+
+  

@@ -1,0 +1,144 @@
+/* Top-level class to avoid conflicts */
+.healthLitScatter {
+  font-family: sans-serif;
+}
+
+/* Title */
+
+.healthLitScatter .title {
+  fill: lightgrey;
+  stroke: none;
+  font-size: large;
+  text-anchor: start;
+}
+
+/* Document info */
+
+.healthLitScatter .documentInfo1 {
+  fill: black;
+  stroke: none;
+  font-size: small;
+  text-anchor: middle;
+}
+
+.healthLitScatter .documentInfo2 {
+  fill: dimgrey;
+  stroke: none;
+  font-size: small;
+  text-anchor: middle;
+}
+
+/* Background circle */
+
+.healthLitScatter .background {
+  visibility: hidden;
+  pointer-events: all;
+}
+
+/* Cluster */
+
+.healthLitScatter .cluster {
+  fill: none;
+  stroke-width: 2;
+  pointer-events: all;
+}
+
+.healthLitScatter .cluster circle:hover {
+  fill: black;
+  fill-opacity: 0.5
+}
+
+.healthLitScatter .cluster .border {
+  stroke: black;
+  stroke-width: 4;
+}
+
+.healthLitScatter .cluster .rmsstd {
+  pointer-events: none;
+}
+
+/* Document */
+
+.healthLitScatter .document {
+  stroke-width: 2;
+  stroke: black;
+  stroke-opacity: 0;
+}
+
+.healthLitScatter .documentBackground {
+  fill-opacity: 0.1;
+  stroke: none;
+  pointer-events: none;
+}
+
+/* Topic */
+
+.healthLitScatter .topic {
+  fill: none;
+  stroke: black;
+  stroke-width: 2;
+  pointer-events: all;
+}
+
+.healthLitScatter .topic circle:hover {
+  fill: black;
+  fill-opacity: 0.5
+}
+
+/* Cluster arc */
+
+.healthLitScatter .clusterArc {
+  stroke: black;
+  stroke-width: 2;
+  pointer-events: all;
+}
+
+.healthLitScatter .clusterArc g:hover {
+  stroke-width: 4;
+}
+
+.healthLitScatter .clusterArc .outline {
+  fill: none;
+  stroke: lightgrey;
+}
+
+.healthLitScatter .clusterArc .label {
+  fill: black;
+  stroke: none;
+  font-size: medium;
+  text-anchor: middle;
+  
+}
+
+/* Topic arc */
+
+.healthLitScatter .topicArc {
+  fill: grey;
+  stroke: black;
+  stroke-width: 2;
+  pointer-events: all;
+}
+
+.healthLitScatter .topicArc g:hover {
+  stroke-width: 4;
+}
+
+.healthLitScatter .topicArc .outline {
+  fill: none;
+  stroke: lightgrey;
+}
+
+.healthLitScatter .topicArc .label {
+  fill: black;
+  stroke: none;
+  font-size: medium;
+  text-anchor: middle;
+}
+
+.healthLitScatter .topicArc .topicLine {
+  fill: none;
+  stroke: black;
+  stroke-width: 2;
+  stroke-linecap: round;
+  pointer-events: none;
+}

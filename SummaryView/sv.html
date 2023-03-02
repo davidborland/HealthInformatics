@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>  
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <title>Summary View</title>
+<!-- <script src="http://d3js.org/d3.v3.js"></script> -->
+<!-- <script src="http://d3js.org/d3.v3.min.js"></script> -->
+<!-- <script src="d3.v3.js"></script> -->
+<script src="d3.v3.min.js"></script>
+</head>
+
+<!-- Set up page -->
+<body>    
+  
+<p>
+  <div id="gui">
+    Load data: <input type="file" id="dataSelect"/>
+  </div>
+</p>
+<div id="main">
+</div>
+
+<!-- Summary view -->
+<script>
+  
+// Callback for file selection
+function handleDataSelect(event) {
+  var url = window.URL.createObjectURL(event.target.files[0]);
+  d3.csv(url, loadData);  
+}
+
+document.getElementById("dataSelect").addEventListener("change", handleDataSelect, false);
+
+// Load the data
+function loadData(error, data) {
+  if (error) console.log(error);
+  
+  console.log("Loaded");
+}
+
+</script>
+
+</body>
+</html>
+
+
+  
